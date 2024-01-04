@@ -1,18 +1,16 @@
 import io
+import text
 import matplotlib.pyplot as plt
+
 from aiogram import types
-from database.bd import History, Balance, Database_pred
+
+from create import history, currency_db, balance, bot
 from create import Dispatcher
 from keyboard import keyboard
-from create import bot
-import text
 
-db_pred = Database_pred('database.db')
-history = History('database.db')
-money = Balance('database.db')
+
 currency_l = {"EUR": 'євро', "USD": "длр", "RUB": "руб", "UAH": "грн", "KZT": "тенге", "PLN": "злоты"}
 currency = {1: "EUR 🇪🇺", 2: "USD 🇺🇸", 3: "RUB 🇷🇺", 4: "UAH 🇺🇦", 5: "KZT 🇰🇿", 6: "PLN 🇵🇱"}
-
 
 
 async def statistic_m(callback: types.CallbackQuery):
@@ -51,14 +49,19 @@ async def statistic_m(callback: types.CallbackQuery):
     plt.savefig(buf, format='png')
     buf.seek(0)
     add = 'subtract'
-    total = money.check_money(callback.from_user.id)
+    total = int(balance.check_money(callback.from_user.id))
     de = round(history.get_average(callback.from_user.id, add), 0)
-    await callback.message.edit_text("<b>Нижче ви можете ознайомитись зі статистикою</b>",parse_mode='HTML')
+    await callback.message.edit_text("<b>Нижче ви можете ознайомитись зі статистикою</b>", parse_mode='HTML')
     await callback.message.answer_photo(photo=types.InputFile(buf, filename='graph.png'))
     await callback.message.answer('<b>📊 коротко про ваші витрати ⬇️</b>\n\n'
-                                  f'<i>Всього витрачено</i> <b>{history.get_sum(callback.from_user.id, add)} {currency.get(db_pred.get_default_pred_value())}</b>\n\n'
-                                  f'<i>В середньому ви витрачаєте</i> <b>{round(history.get_average(callback.from_user.id, add), 0)} {currency.get(db_pred.get_default_pred_value())}</b> <i>в день</i>\n\n'
-                                  f'<i>Судячи з данних ваших коштів вам вистачить приблизно на</i> <b>{total // de}</b> <i>днів</i>', reply_markup=keyboard.stat_back(), parse_mode='HTML')
+                                  f'<i>Всього витрачено</i> <b>{history.get_sum(callback.from_user.id, add)} '
+                                  f'{currency.get(currency_db.get_default_pred_value())}</b>\n\n'
+                                  f'<i>В середньому ви витрачаєте</i> '
+                                  f'<b>{round(history.get_average(callback.from_user.id, add), 0) if history.get_average(callback.from_user.id, add) != 0 else "лддл"}</b>'
+                                  f' {currency.get(currency_db.get_default_pred_value())}</b> <i>в день</i>\n\n'
+                                  f'<i>Судячи з даних ваших коштів, вам вистачить приблизно на</i> <b>{total // de}</b>'
+                                  f' <i>днів</i>' if de != 0 else '<i>Судячи з даних ваших коштів, неможливо розрахувати</i>'
+                                  f' <i>днів</i>', reply_markup=keyboard.stat_back(), parse_mode='HTML')
 
     buf.close()
 
@@ -100,12 +103,16 @@ async def statistic_a(callback: types.CallbackQuery):
     plt.savefig(buf, format='png')
     buf.seek(0)
     add_sum = 'add'
-    ku = currency.get(db_pred.get_default_pred_value())
+    ku = currency.get(currency_db.get_default_pred_value())
     await callback.message.edit_text("<b>Нижче ви можете ознайомитись зі статистикою</b>",parse_mode='HTML')
     await callback.message.answer_photo(photo=types.InputFile(buf, filename='graph.png'))
     await callback.message.answer('<b>📊 коротко про ваші поповнення ⬇️</b>\n\n'
-                                  f'<i>Взагалом ви поповнили</i> <b>{history.get_sum(callback.from_user.id, add_sum)} {currency.get(db_pred.get_default_pred_value())}</b>\n\n'
-                                  f'<i>В середньому ви поповняєте свій баланс на</i> <b>{round(history.get_average(callback.from_user.id, add_sum), 0)} {currency.get(db_pred.get_default_pred_value())}</b>', reply_markup=keyboard.stat_back(), parse_mode='HTML')
+                                  f'<i>Взагалом ви поповнили</i> <b>{history.get_sum(callback.from_user.id, add_sum)}'
+                                  f' {currency.get(currency_db.get_default_pred_value())}</b>\n\n'
+                                  f'<i>В середньому ви поповняєте свій баланс на</i> '
+                                  f'<b>{round(history.get_average(callback.from_user.id, add_sum), 0)} '
+                                  f'{currency.get(currency_db.get_default_pred_value())}</b>',
+                                  reply_markup=keyboard.stat_back(), parse_mode='HTML')
 
     buf.close()
 

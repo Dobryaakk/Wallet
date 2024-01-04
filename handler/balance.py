@@ -1,25 +1,22 @@
 import asyncio
+import text
+import requests
+
 
 from aiogram import types, Dispatcher
-from database.bd import Balance, Database_pred, History
-from keyboard import keyboard
 from aiogram.dispatcher import FSMContext
 from aiogram.dispatcher.filters.state import State, StatesGroup
-from create import bot
-import text
 from fake_useragent import UserAgent
-import requests
+
+from create import history, currency_db, balance
+from keyboard import keyboard
+from create import bot
 
 ua = UserAgent()
 
 headers = {
       "User-Agent": ua.random
 }
-
-
-my_money = Balance('database.db')
-db_pred = Database_pred('database.db')
-history = History('database.db')
 
 
 currency = {1: "EUR 🇪🇺", 2: "USD 🇺🇸", 3: "RUB 🇷🇺", 4: "UAH 🇺🇦", 5: "KZT 🇰🇿", 6: "PLN 🇵🇱"}
@@ -29,7 +26,7 @@ currency_get = {1: "EUR", 2: "USD", 3: "RUB", 4: "UAH", 5: "KZT", 6: "PLN"}
 
 
 def get_exchange_rate(currency_code):
-    url = f"https://api.exchangerate-api.com/v4/latest/{currency_get.get(db_pred.get_default_pred_value())}"
+    url = f"https://api.exchangerate-api.com/v4/latest/{currency_get.get(currency_db.get_default_pred_value())}"
     response = requests.get(url)
     data = response.json()
     exchange_rate = data["rates"][currency_code]
@@ -37,11 +34,12 @@ def get_exchange_rate(currency_code):
 
 
 async def process_conversion(callback: types.CallbackQuery):
+    global flag_base
     await callback.message.edit_text("<i>⏳ отримую актуальні данні, секунду...</i>", parse_mode='HTML')
     await asyncio.sleep(0.1)
 
-    base_currency = currency_get.get(db_pred.get_default_pred_value())
-    euro_amount = my_money.check_money(callback.from_user.id)
+    base_currency = currency_get.get(currency_db.get_default_pred_value())
+    euro_amount = balance.check_money(callback.from_user.id)
 
     results = []
     for target_currency in currency_:
@@ -58,7 +56,9 @@ async def process_conversion(callback: types.CallbackQuery):
 
     unique_results = list(set(results))
     result_text = "\n".join(unique_results)
-    await callback.message.edit_text(f'<i>Ваш баланс</i> <b>{euro_amount:.2f} {flag_base}</b>.\n\n<i>Конвертація у інші валюти:</i>\n\n{result_text}', reply_markup=keyboard.back_conv(), parse_mode="HTML")
+    await callback.message.edit_text(f'<i>Ваш баланс</i> <b>{euro_amount:.2f} '
+                                     f'{flag_base}</b>.\n\n<i>Конвертація у інші валюти:</i>\n\n{result_text}',
+                                     reply_markup=keyboard.back_conv(), parse_mode="HTML")
 
 
 class FSM(StatesGroup):
@@ -69,8 +69,8 @@ class FSM(StatesGroup):
 
 async def money(callback: types.CallbackQuery):
     if callback.data == "main_balance":
-        da = my_money.check_money(callback.from_user.id)
-        await callback.message.edit_text(f"<i>Ваш баланс складає</i> <b>{da} {currency.get(db_pred.get_default_pred_value())}</b>",
+        da = balance.check_money(callback.from_user.id)
+        await callback.message.edit_text(f"<i>Ваш баланс складає</i> <b>{da} {currency.get(currency_db.get_default_pred_value())}</b>",
                                          reply_markup=keyboard.balance(), parse_mode='HTML')
     elif callback.data == "main_costs":
         await callback.message.edit_text(
@@ -91,9 +91,9 @@ async def add_money(callback: types.CallbackQuery):
         await callback.message.edit_text(
             text.start_not, reply_markup=keyboard.main_keyboard(), parse_mode="HTML")
     elif callback.data == 'add_back_b':
-        da = my_money.check_money(callback.from_user.id)
+        da = balance.check_money(callback.from_user.id)
         await callback.message.edit_text(
-            f"<i>Ваш баланс складає</i> <b>{da} {currency.get(db_pred.get_default_pred_value())}</b>",
+            f"<i>Ваш баланс складає</i> <b>{da} {currency.get(currency_db.get_default_pred_value())}</b>",
             reply_markup=keyboard.balance(), parse_mode='HTML')
 
 
@@ -102,9 +102,9 @@ async def back_all_menu(callback: types.CallbackQuery):
         await callback.message.edit_text(
             text.start_not, reply_markup=keyboard.main_keyboard(), parse_mode="HTML")
     if callback.data == "back_balance":
-        da = my_money.check_money(callback.from_user.id)
+        da = balance.check_money(callback.from_user.id)
         await callback.message.edit_text(
-            f"<i>Ваш баланс складає</i> <b>{da} {currency.get(db_pred.get_default_pred_value())}</b>",
+            f"<i>Ваш баланс складає</i> <b>{da} {currency.get(currency_db.get_default_pred_value())}</b>",
             reply_markup=keyboard.balance(), parse_mode='HTML')
 
 
@@ -131,9 +131,9 @@ async def pred_settings(callback: types.CallbackQuery):
     if pred_key in pred_options:
         currency_code = pred_options[pred_key]
         pred_value = pred_data[pred_key]
-        db_pred.insert_or_update_data(callback.from_user.id, callback.from_user.full_name, pred_value)
+        currency_db.insert_or_update_data(callback.from_user.id, callback.from_user.full_name, pred_value)
         message_text = f"<i>Виберіть валюту для подальшого використання 💶\n\nВибрано:</i> <b>{currency_code}</b>"
-        await callback.message.edit_text(message_text, reply_markup=keyboard.currency(db_pred.get_default_pred_value()), parse_mode="HTML")
+        await callback.message.edit_text(message_text, reply_markup=keyboard.currency(currency_db.get_default_pred_value()), parse_mode="HTML")
 
     elif pred_key == 'pred_agree':
         await callback.message.delete()
@@ -146,15 +146,15 @@ async def rules(message: types.Message, state: FSMContext):
         async with state.proxy() as data:
             data['bal'] = message.text
             history.add_money_history(message.from_user.id, message.text)
-            my_money.add_money(message.from_user.id, message.text)
+            balance.add_money(message.from_user.id, message.text)
             message_delete = message.message_id - 1
             message_delete_2 = message.message_id
             await bot.delete_message(message.chat.id, message_delete)
             await bot.delete_message(message.chat.id, message_delete_2)
             await message.answer(
                 f"<i>Ваш баланс поповнено на</i> <b>{message.text}</b>"
-                f" {currency.get(db_pred.get_default_pred_value())}\n<i>Тепер ваш баланс нараховує</i>"
-                f" <b>{my_money.check_money(message.from_user.id)} {currency.get(db_pred.get_default_pred_value())}</b>",
+                f" {currency.get(currency_db.get_default_pred_value())}\n<i>Тепер ваш баланс нараховує</i>"
+                f" <b>{balance.check_money(message.from_user.id)} {currency.get(currency_db.get_default_pred_value())}</b>",
                 reply_markup=keyboard.back_in_main(), parse_mode='HTML')
             await state.finish()
     else:
@@ -166,9 +166,9 @@ async def back_with_fsm_rules(callback: types.CallbackQuery, state: FSMContext):
     if current_state is None:
         return
     await state.finish()
-    da = my_money.check_money(callback.from_user.id)
+    da = balance.check_money(callback.from_user.id)
     await callback.message.edit_text(
-        f"<i>Ваш баланс складає</i> <b>{da} {currency.get(db_pred.get_default_pred_value())}</b>",
+        f"<i>Ваш баланс складає</i> <b>{da} {currency.get(currency_db.get_default_pred_value())}</b>",
         reply_markup=keyboard.balance(), parse_mode='HTML')
 
 
