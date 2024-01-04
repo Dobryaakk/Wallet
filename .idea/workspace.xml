@@ -6,13 +6,7 @@
   <component name="ChangeListManager">
     <list default="true" id="f19ed509-91a1-4495-af71-43442d7a052e" name="Changes" comment="">
       <change beforePath="$PROJECT_DIR$/.gitignore" beforeDir="false" afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/create.py" beforeDir="false" afterPath="$PROJECT_DIR$/create.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/database/bd.py" beforeDir="false" afterPath="$PROJECT_DIR$/database/bd.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handler/balance.py" beforeDir="false" afterPath="$PROJECT_DIR$/handler/balance.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handler/commands.py" beforeDir="false" afterPath="$PROJECT_DIR$/handler/commands.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handler/costs.py" beforeDir="false" afterPath="$PROJECT_DIR$/handler/costs.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/handler/statistic.py" beforeDir="false" afterPath="$PROJECT_DIR$/handler/statistic.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/database.db" beforeDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
