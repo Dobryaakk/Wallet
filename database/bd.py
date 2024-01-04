@@ -12,8 +12,8 @@ class History:
             with self.conn:
                 self.cur.execute("""
                         CREATE TABLE IF NOT EXISTS add_history(
-                            user_id serial,
-                            amount ser,
+                            user_id INTEGER,
+                            amount INTEGER,
                             date DATE DEFAULT (DATE('now', 'localtime'))
                         )
                     """)
@@ -26,6 +26,7 @@ class History:
                     """)
         except Exception as ex:
             print(ex)
+
     def get_sum(self, user_id, operation_type):
         table_name = f"{operation_type}_history"
         with self.conn:
